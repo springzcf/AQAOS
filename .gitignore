@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.tsbuildinfo
+*.tsbuildinfo
+qa-swarm-out/
+qa-out/
+test-results/
+playwright-report/
+.env
+.DS_Store
+coverage/
+*.log
+# backups
+*.bak
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
