@@ -18,6 +18,7 @@ Thanks for your interest in contributing! Here are the basics:
 ## Issues
 
 Found a bug? Open an issue with:
+
 - Steps to reproduce
 - Expected vs actual behavior
 - Your environment (OS, language version)

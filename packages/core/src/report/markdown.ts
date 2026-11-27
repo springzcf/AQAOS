@@ -1,17 +1,17 @@
 import type { SwarmState } from "../types.js";
 
 export function renderRunReport(state: SwarmState): string {
-  const passed = state.results.filter((r) => r.status === "passed").length;
-  const failed = state.results.filter((r) => r.status === "failed").length;
-  const flaky = state.results.filter((r) => r.status === "flaky").length;
-  const quarantined = state.results.filter((r) => r.status === "quarantined").length;
-  const productBugs = state.verdicts.filter((v) => v.classification === "product-bug").length;
-  const total = state.results.length || 1;
-  const passRate = ((passed / total) * 100).toFixed(1);
+    const passed = state.results.filter((r) => r.status === "passed").length;
+    const failed = state.results.filter((r) => r.status === "failed").length;
+    const flaky = state.results.filter((r) => r.status === "flaky").length;
+    const quarantined = state.results.filter((r) => r.status === "quarantined").length;
+    const productBugs = state.verdicts.filter((v) => v.classification === "product-bug").length;
+    const total = state.results.length || 1;
+    const passRate = ((passed / total) * 100).toFixed(1);
 
-  const heals = state.log.filter((l) => l.message.startsWith("healed locator")).length;
+    const heals = state.log.filter((l) => l.message.startsWith("healed locator")).length;
 
-  return `# QA-Swarm Run Report
+    return `# QA-Swarm Run Report
 
 **Run ID:** \`${state.runId}\`
 **Target:** ${state.config.target}
@@ -46,19 +46,19 @@ generated **${state.tests.length}** tests, and executed **${state.results.length
 ## Bugs
 
 ${
-  state.bugs.length === 0
-    ? "_No product bugs filed this run._"
-    : state.bugs
-        .map(
-          (b) => `### ${b.id} — ${b.title}
+    state.bugs.length === 0
+        ? "_No product bugs filed this run._"
+        : state.bugs
+              .map(
+                  (b) => `### ${b.id} — ${b.title}
 - **Severity:** ${b.severity}
 - **Filed to:** ${b.externalRef ?? b.target}
 - **Fingerprint:** \`${b.fingerprint}\`
 
 ${b.summary}
 `,
-        )
-        .join("\n")
+              )
+              .join("\n")
 }
 
 ---
@@ -66,15 +66,15 @@ ${b.summary}
 ## Failed tests
 
 ${
-  state.results.filter((r) => r.status === "failed").length === 0
-    ? "_No failures._"
-    : state.results
-        .filter((r) => r.status === "failed")
-        .map(
-          (r) =>
-            `- **${r.title}** (\`${r.testId}\`) — ${r.error ?? "unknown error"}${r.failedSelector ? `\n  - broken selector: \`${r.failedSelector}\`` : ""}`,
-        )
-        .join("\n")
+    state.results.filter((r) => r.status === "failed").length === 0
+        ? "_No failures._"
+        : state.results
+              .filter((r) => r.status === "failed")
+              .map(
+                  (r) =>
+                      `- **${r.title}** (\`${r.testId}\`) — ${r.error ?? "unknown error"}${r.failedSelector ? `\n  - broken selector: \`${r.failedSelector}\`` : ""}`,
+              )
+              .join("\n")
 }
 
 ---
@@ -82,14 +82,14 @@ ${
 ## Coverage gaps
 
 ${
-  state.coverageGaps.length === 0
-    ? "_No gaps detected._"
-    : state.coverageGaps
-        .map(
-          (g) =>
-            `- **${g.area}** (confidence ${(g.confidence * 100).toFixed(0)}%) — ${g.description}\n  - _suggestion:_ ${g.suggestion}`,
-        )
-        .join("\n")
+    state.coverageGaps.length === 0
+        ? "_No gaps detected._"
+        : state.coverageGaps
+              .map(
+                  (g) =>
+                      `- **${g.area}** (confidence ${(g.confidence * 100).toFixed(0)}%) — ${g.description}\n  - _suggestion:_ ${g.suggestion}`,
+              )
+              .join("\n")
 }
 
 ---
@@ -97,14 +97,14 @@ ${
 ## Security findings
 
 ${
-  state.securityFindings.length === 0
-    ? "_No findings._"
-    : state.securityFindings
-        .map(
-          (f) =>
-            `- **[${f.severity}] ${f.title}** — ${f.url}${f.cwe ? ` (${f.cwe})` : ""}\n  - evidence: ${f.evidence}\n  - fix: ${f.remediation}`,
-        )
-        .join("\n")
+    state.securityFindings.length === 0
+        ? "_No findings._"
+        : state.securityFindings
+              .map(
+                  (f) =>
+                      `- **[${f.severity}] ${f.title}** — ${f.url}${f.cwe ? ` (${f.cwe})` : ""}\n  - evidence: ${f.evidence}\n  - fix: ${f.remediation}`,
+              )
+              .join("\n")
 }
 
 ---
@@ -112,14 +112,14 @@ ${
 ## Performance
 
 ${
-  state.performanceFindings.length === 0
-    ? "_No metrics captured._"
-    : state.performanceFindings
-        .map(
-          (f) =>
-            `- ${f.passed ? "✅" : "❌"} **${f.metric}** on ${f.url}: ${f.value}${f.unit} (budget ${f.budget}${f.unit}) — ${f.recommendation}`,
-        )
-        .join("\n")
+    state.performanceFindings.length === 0
+        ? "_No metrics captured._"
+        : state.performanceFindings
+              .map(
+                  (f) =>
+                      `- ${f.passed ? "✅" : "❌"} **${f.metric}** on ${f.url}: ${f.value}${f.unit} (budget ${f.budget}${f.unit}) — ${f.recommendation}`,
+              )
+              .join("\n")
 }
 
 ---
@@ -128,9 +128,9 @@ ${
 
 \`\`\`
 ${state.log
-  .slice(-60)
-  .map((l) => `[${l.at.slice(11, 19)}] ${l.agent.padEnd(14)} ${l.message}`)
-  .join("\n")}
+    .slice(-60)
+    .map((l) => `[${l.at.slice(11, 19)}] ${l.agent.padEnd(14)} ${l.message}`)
+    .join("\n")}
 \`\`\`
 
 ${state.errors.length ? `\n---\n\n## Errors\n\n${state.errors.map((e) => `- ${e}`).join("\n")}` : ""}
@@ -142,29 +142,29 @@ _Generated by [QA-Swarm](https://github.com/qa-swarm/qa-swarm) — an open-sourc
 }
 
 export function renderJUnit(state: SwarmState): string {
-  const cases = state.results
-    .map((r) => {
-      const time = (r.durationMs / 1000).toFixed(3);
-      if (r.status === "passed") {
-        return `    <testcase name="${escapeXml(r.title)}" classname="${r.testId}" time="${time}"/>`;
-      }
-      if (r.status === "skipped" || r.status === "quarantined") {
-        return `    <testcase name="${escapeXml(r.title)}" classname="${r.testId}" time="${time}">
+    const cases = state.results
+        .map((r) => {
+            const time = (r.durationMs / 1000).toFixed(3);
+            if (r.status === "passed") {
+                return `    <testcase name="${escapeXml(r.title)}" classname="${r.testId}" time="${time}"/>`;
+            }
+            if (r.status === "skipped" || r.status === "quarantined") {
+                return `    <testcase name="${escapeXml(r.title)}" classname="${r.testId}" time="${time}">
       <skipped message="${escapeXml(r.status)}"/>
     </testcase>`;
-      }
-      return `    <testcase name="${escapeXml(r.title)}" classname="${r.testId}" time="${time}">
+            }
+            return `    <testcase name="${escapeXml(r.title)}" classname="${r.testId}" time="${time}">
       <failure message="${escapeXml(r.error ?? "failed")}">${escapeXml(r.stack ?? "")}</failure>
     </testcase>`;
-    })
-    .join("\n");
+        })
+        .join("\n");
 
-  const failures = state.results.filter((r) => r.status === "failed").length;
-  const skipped = state.results.filter(
-    (r) => r.status === "skipped" || r.status === "quarantined",
-  ).length;
+    const failures = state.results.filter((r) => r.status === "failed").length;
+    const skipped = state.results.filter(
+        (r) => r.status === "skipped" || r.status === "quarantined",
+    ).length;
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
+    return `<?xml version="1.0" encoding="UTF-8"?>
 <testsuites name="qa-swarm" tests="${state.results.length}" failures="${failures}" skipped="${skipped}">
   <testsuite name="qa-swarm-${state.runId}" tests="${state.results.length}" failures="${failures}" skipped="${skipped}">
 ${cases}
@@ -174,10 +174,10 @@ ${cases}
 }
 
 function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+    return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
 }

@@ -1,0 +1,13 @@
+{
+  "name": "@aqaos/worker-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AQAOS agent worker — hosts Claude Agent SDK sessions (会话型/混合型 agents), MCP tool dispatch, and approval hooks.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  }
+}

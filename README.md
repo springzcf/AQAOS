@@ -80,14 +80,14 @@ QA-Swarm 是一个构建在 [LangGraph](https://github.com/langchain-ai/langgrap
 
 ## 🤔 为什么选择 QA-Swarm
 
-| 传统 QA | QA-Swarm |
-|---------|----------|
-| 每个测试都由人来写 | 智能体根据探索结果生成测试 |
-| 不稳定测试浪费 CI 时间 | 分诊器对每个失败分类;不稳定的被隔离,而非阻塞 |
-| 选择器一坏,构建就红 | 自愈定位器自动修复 + 提 PR |
-| 安全/性能要靠另外的工具 | 一个蜂群、并行智能体、一份报告 |
-| 回归测试集逐渐腐烂 | 通过的测试自动晋升进测试集 |
-| 人工提单、复现步骤含糊 | 提单自带 trace、截图和置信度分数 |
+| 传统 QA                 | QA-Swarm                                     |
+| ----------------------- | -------------------------------------------- |
+| 每个测试都由人来写      | 智能体根据探索结果生成测试                   |
+| 不稳定测试浪费 CI 时间  | 分诊器对每个失败分类;不稳定的被隔离,而非阻塞 |
+| 选择器一坏,构建就红     | 自愈定位器自动修复 + 提 PR                   |
+| 安全/性能要靠另外的工具 | 一个蜂群、并行智能体、一份报告               |
+| 回归测试集逐渐腐烂      | 通过的测试自动晋升进测试集                   |
+| 人工提单、复现步骤含糊  | 提单自带 trace、截图和置信度分数             |
 
 它并非要取代你的 QA 工程师——它是一个**战力倍增器**,把样板工作从他们的盘子里拿走,让他们专注于高难度的探索性工作。
 
@@ -130,6 +130,7 @@ QA-Swarm 是一个构建在 [LangGraph](https://github.com/langchain-ai/langgrap
 ## 🚀 快速开始
 
 ### 前置条件
+
 - **Node.js ≥ 20**
 - 一个 **LLM API 密钥** — `OPENAI_API_KEY` 或 `ANTHROPIC_API_KEY` 二选一(配置在 `.env` 或环境变量中)。没有密钥时,蜂群会以降级的"mock LLM"模式运行,依然能跑通整张图和全部工具,适合演示。
 - (可选,用于完整记忆)运行 Qdrant + Postgres 所需的 **Docker** — 见 [Docker(Qdrant + Postgres)](#-docker-qdrant--postgres)。
@@ -169,15 +170,15 @@ curl http://localhost:4317/runs/run-lz0f3k
 
 ## 🐝 智能体
 
-| 智能体 | 文件 | 职责 |
-|--------|------|------|
-| 🧭 **Explorer(探索器)** | `packages/core/src/agents/explorer.ts` | 爬取网页(Playwright)+ 读取 OpenAPI 规范,构建探索地图(页面、流程、端点)。 |
-| ✨ **Test Generator(测试生成器)** | `packages/core/src/agents/test-generator.ts` | 使用 LLM 根据地图编写 Playwright 测试;借助 Qdrant 去重,避免重复生成已知测试。 |
-| ▶ **Executor(执行器)** | `packages/core/src/agents/executor.ts` | 在真实浏览器中运行生成的测试;定位器失效时调用**自愈器**。 |
-| 🔬 **Triage(分诊器)** | `packages/core/src/agents/triage.ts` | 为每个失败分类(`product-bug` / `test-bug` / `flaky` / `environment`),并给出置信度分数和简要理由。 |
-| 🔒 **Security(安全)** | `packages/core/src/agents/security.ts` | OWASP 风格检查:安全响应头、Cookie 标志、TLS、信息泄露。 |
-| ⚡ **Performance(性能)** | `packages/core/src/agents/performance.ts` | 采集 p50/p95/p99 与 LCP/CLS,并按你的预算门禁判定。 |
-| 📋 **Reporter(报告器)** | `packages/core/src/agents/reporter.ts` | 输出 markdown 报告 + JUnit XML、提交缺陷、把通过的测试晋升进回归测试集。 |
+| 智能体                            | 文件                                         | 职责                                                                                              |
+| --------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 🧭 **Explorer(探索器)**           | `packages/core/src/agents/explorer.ts`       | 爬取网页(Playwright)+ 读取 OpenAPI 规范,构建探索地图(页面、流程、端点)。                          |
+| ✨ **Test Generator(测试生成器)** | `packages/core/src/agents/test-generator.ts` | 使用 LLM 根据地图编写 Playwright 测试;借助 Qdrant 去重,避免重复生成已知测试。                     |
+| ▶ **Executor(执行器)**            | `packages/core/src/agents/executor.ts`       | 在真实浏览器中运行生成的测试;定位器失效时调用**自愈器**。                                         |
+| 🔬 **Triage(分诊器)**             | `packages/core/src/agents/triage.ts`         | 为每个失败分类(`product-bug` / `test-bug` / `flaky` / `environment`),并给出置信度分数和简要理由。 |
+| 🔒 **Security(安全)**             | `packages/core/src/agents/security.ts`       | OWASP 风格检查:安全响应头、Cookie 标志、TLS、信息泄露。                                           |
+| ⚡ **Performance(性能)**          | `packages/core/src/agents/performance.ts`    | 采集 p50/p95/p99 与 LCP/CLS,并按你的预算门禁判定。                                                |
+| 📋 **Reporter(报告器)**           | `packages/core/src/agents/reporter.ts`       | 输出 markdown 报告 + JUnit XML、提交缺陷、把通过的测试晋升进回归测试集。                          |
 
 每个智能体都继承自 `BaseAgent`(`packages/core/src/agents/base.ts`),由它提供:共享的 `SwarmState`、LLM 提供器、工具注册表、结构化日志,以及重试/退避包装。
 
@@ -227,14 +228,14 @@ qa-swarm <command> [options]
 
 ## 🌐 HTTP API
 
-| 方法 | 路径 | Body / Query | 返回 |
-|------|------|--------------|------|
-| `GET` | `/health` | — | `{ ok, runs, version, uptime }` |
-| `GET` | `/` | — | 控制面板 HTML |
-| `GET` | `/ui` | — | `/` 的别名 |
-| `POST` | `/runs` | `{ target, targetKind, baseUrl?, dryRun? }` | `{ id, status, poll }`(202) |
-| `GET` | `/runs` | — | `[{ id, status, startedAt, tests, bugs }]` |
-| `GET` | `/runs/:id` | — | 完整运行状态(摘要、缺陷、结果、日志)|
+| 方法   | 路径        | Body / Query                                | 返回                                       |
+| ------ | ----------- | ------------------------------------------- | ------------------------------------------ |
+| `GET`  | `/health`   | —                                           | `{ ok, runs, version, uptime }`            |
+| `GET`  | `/`         | —                                           | 控制面板 HTML                              |
+| `GET`  | `/ui`       | —                                           | `/` 的别名                                 |
+| `POST` | `/runs`     | `{ target, targetKind, baseUrl?, dryRun? }` | `{ id, status, poll }`(202)                |
+| `GET`  | `/runs`     | —                                           | `[{ id, status, startedAt, tests, bugs }]` |
+| `GET`  | `/runs/:id` | —                                           | 完整运行状态(摘要、缺陷、结果、日志)       |
 
 这套 API 是一个轻量的控制平面——运行即发即忘,并保存在内存中。如需多节点持久化,可把 `runs` Map 换成 Redis 或 Postgres。
 
@@ -244,16 +245,16 @@ qa-swarm <command> [options]
 
 配置类型为 `SwarmConfig`(`packages/core/src/types.ts`),默认值定义在 `DEFAULT_CONFIG` 中。可通过 CLI 旗标、API 请求体或环境变量覆盖:
 
-| 环境变量 | 默认值 | 用途 |
-|---------|---------|------|
-| `OPENAI_API_KEY` | — | LLM 提供器(OpenAI / GPT-4o) |
-| `ANTHROPIC_API_KEY` | — | LLM 提供器(Anthropic / Claude) |
-| `QA_LLM_PROVIDER` | `openai` | `openai` \| `anthropic` \| `mock` |
-| `QA_QDRANT_URL` | `http://localhost:6333` | 用于语义记忆的 Qdrant |
-| `QA_PG_URL` | `postgres://localhost/qa-swarm` | 用于运行历史的 Postgres |
-| `PORT` | `4317` | API + 控制面板端口 |
-| `QA_BUDGET_P95` | `800` | 性能 p95 预算(毫秒) |
-| `QA_MAX_PAGES` | `50` | 爬虫页面数上限 |
+| 环境变量            | 默认值                          | 用途                              |
+| ------------------- | ------------------------------- | --------------------------------- |
+| `OPENAI_API_KEY`    | —                               | LLM 提供器(OpenAI / GPT-4o)       |
+| `ANTHROPIC_API_KEY` | —                               | LLM 提供器(Anthropic / Claude)    |
+| `QA_LLM_PROVIDER`   | `openai`                        | `openai` \| `anthropic` \| `mock` |
+| `QA_QDRANT_URL`     | `http://localhost:6333`         | 用于语义记忆的 Qdrant             |
+| `QA_PG_URL`         | `postgres://localhost/qa-swarm` | 用于运行历史的 Postgres           |
+| `PORT`              | `4317`                          | API + 控制面板端口                |
+| `QA_BUDGET_P95`     | `800`                           | 性能 p95 预算(毫秒)               |
+| `QA_MAX_PAGES`      | `50`                            | 爬虫页面数上限                    |
 
 将 `.env.example` 复制为 `.env` 并填入你的密钥。
 

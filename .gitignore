@@ -10,6 +10,11 @@ playwright-report/
 .DS_Store
 coverage/
 *.log
+
+# Next.js（apps/dashboard 构建产物与自动生成文件）
+.next/
+next-env.d.ts
+
 # backups
 *.bak
 # IDE

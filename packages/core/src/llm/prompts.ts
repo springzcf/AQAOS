@@ -11,14 +11,14 @@ Rules:
 - Return STRICT JSON. No prose, no markdown fences.`;
 
 export function explorerPrompt(page: DiscoveredPage): string {
-  const els = page.elements
-    .slice(0, 40)
-    .map(
-      (e) =>
-        `- ${e.tag}${e.role ? `[role=${e.role}]` : ""} name="${e.name}" label="${e.label ?? ""}" placeholder="${e.placeholder ?? ""}" fillable=${e.fillable} clickable=${e.clickable}`,
-    )
-    .join("\n");
-  return `URL: ${page.url}
+    const els = page.elements
+        .slice(0, 40)
+        .map(
+            (e) =>
+                `- ${e.tag}${e.role ? `[role=${e.role}]` : ""} name="${e.name}" label="${e.label ?? ""}" placeholder="${e.placeholder ?? ""}" fillable=${e.fillable} clickable=${e.clickable}`,
+        )
+        .join("\n");
+    return `URL: ${page.url}
 Title: ${page.title}
 Guessed role: ${page.role}
 
@@ -37,11 +37,11 @@ You write Playwright tests in TypeScript that are:
 Return STRICT JSON only.`;
 
 export function generatorPrompt(input: {
-  page: DiscoveredPage;
-  intent: string;
-  count: number;
+    page: DiscoveredPage;
+    intent: string;
+    count: number;
 }): string {
-  return `Page: ${input.page.url} (${input.page.title})
+    return `Page: ${input.page.url} (${input.page.title})
 Intent to cover: ${input.intent}
 Produce ${input.count} test case(s).
 
@@ -76,10 +76,10 @@ Classifications:
 Return STRICT JSON only.`;
 
 export function triagePrompt(result: TestResult, test?: GeneratedTest): string {
-  const signals = (result.signals ?? [])
-    .map((s) => `  [${s.kind}/${s.level ?? "-"}] ${s.message}`)
-    .join("\n");
-  return `Test: ${result.title}
+    const signals = (result.signals ?? [])
+        .map((s) => `  [${s.kind}/${s.level ?? "-"}] ${s.message}`)
+        .join("\n");
+    return `Test: ${result.title}
 Status: ${result.status} (attempts=${result.attempts}, ${result.durationMs}ms)
 Error: ${result.error ?? "(none)"}
 Stack:
@@ -105,11 +105,11 @@ Only report findings you can back with the evidence provided. Never invent
 vulnerabilities. Return STRICT JSON only.`;
 
 export function securityPrompt(input: {
-  url: string;
-  headers: Record<string, string>;
-  bodySnippet: string;
+    url: string;
+    headers: Record<string, string>;
+    bodySnippet: string;
 }): string {
-  return `URL: ${input.url}
+    return `URL: ${input.url}
 Response headers:
 ${JSON.stringify(input.headers, null, 2)}
 Body snippet:
@@ -130,13 +130,10 @@ Given the list of pages explored and tests generated, identify coverage gaps —
 user journeys or pages that were discovered but not exercised.
 Return STRICT JSON only.`;
 
-export function coveragePrompt(input: {
-  pages: DiscoveredPage[];
-  tests: GeneratedTest[];
-}): string {
-  const tested = new Set(input.tests.map((t) => t.origin));
-  const untested = input.pages.filter((p) => !tested.has(p.url));
-  return `Explored pages (${input.pages.length}), tested origins (${tested.size}).
+export function coveragePrompt(input: { pages: DiscoveredPage[]; tests: GeneratedTest[] }): string {
+    const tested = new Set(input.tests.map((t) => t.origin));
+    const untested = input.pages.filter((p) => !tested.has(p.url));
+    return `Explored pages (${input.pages.length}), tested origins (${tested.size}).
 Untested pages:
 ${untested.map((p) => `- ${p.url} (${p.role})`).join("\n") || "(none)"}
 

@@ -1,0 +1,117 @@
+# AQAOS 本地开发依赖栈（T-E01-03）。
+#
+# 一键启动：make dev（或 docker compose -f docker/docker-compose.dev.yml up -d）
+# 包含：postgres+pgvector / redis / minio（对象存储） / temporal（server+ui） / litellm（模型网关）
+#
+# 端口约定（避免与被测应用冲突）：
+#   5432 postgres   6379 redis   9000/9001 minio   7233 temporal   8085 temporal-ui   4000 litellm
+
+name: aqaos-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: aqaos
+      POSTGRES_PASSWORD: aqaos
+      POSTGRES_DB: aqaos
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aqaos -d aqaos"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: aqaos
+      MINIO_ROOT_PASSWORD: aqaos-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # 一次性任务：创建对象存储桶（证据/报告/截图）。
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set aqaos http://minio:9000 aqaos aqaos-secret &&
+      mc mb --ignore-existing aqaos/aqaos-artifacts &&
+      mc mb --ignore-existing aqaos/aqaos-reports &&
+      echo 'minio buckets ready'
+      "
+
+  temporal:
+    image: temporalio/auto-setup:1.25.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: aqaos
+      POSTGRES_PWD: aqaos
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: /etc/temporal/dynamicconfig/dev.yaml
+    ports:
+      - "7233:7233"
+    volumes:
+      - ./temporal/dynamicconfig:/etc/temporal/dynamicconfig
+
+  temporal-ui:
+    image: temporalio/ui:2.31.2
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3400,http://localhost:4317
+    ports:
+      - "8085:8080"
+
+  # 模型网关（SDD §6.5）：对外提供 Anthropic Messages 协议兼容端点。
+  # Agent 侧统一设置：ANTHROPIC_BASE_URL=http://localhost:4000
+  litellm:
+    image: ghcr.io/berriai/litellm:main-v1.74.0
+    command: ["--config", "/app/litellm-config.yaml", "--port", "4000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-aqaos-dev-master-key}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DATABASE_URL: postgresql://aqaos:aqaos@postgres:5432/aqaos
+      STORE_MODEL_IN_DB: "true"
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./litellm-config.yaml:/app/litellm-config.yaml:ro
+
+volumes:
+  pgdata:
+  miniodata:

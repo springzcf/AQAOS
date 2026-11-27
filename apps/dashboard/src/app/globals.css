@@ -1,0 +1,97 @@
+:root {
+  --bg: #0b0f14;
+  --panel: #131a23;
+  --border: #24303d;
+  --text: #e6edf3;
+  --dim: #8b98a5;
+  --blue: #58a6ff;
+  --purple: #bc8cff;
+  --grad: linear-gradient(90deg, #58a6ff, #bc8cff);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font:
+    14px/1.5 ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar .logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--grad);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.topbar h1 {
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.topbar .tag {
+  color: var(--dim);
+  font-size: 11px;
+  border: 1px solid var(--border);
+  padding: 2px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 28px 80px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.card h2 {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.card p {
+  color: var(--dim);
+  font-size: 13px;
+}
+
+.card footer {
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--dim);
+  font-family: ui-monospace, Menlo, monospace;
+}

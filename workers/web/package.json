@@ -1,0 +1,13 @@
+{
+  "name": "@aqaos/worker-web",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AQAOS web runner worker — 程序型 deterministic Playwright execution core (browser matrix, evidence capture, self-heal retry).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  }
+}

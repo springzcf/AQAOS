@@ -1,0 +1,14 @@
+{
+  "name": "@aqaos/demo-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AQAOS evaluation target — deliberately flawed demo app (5 known bugs) + OpenAPI spec. Fixes audit D-03.",
+  "scripts": {
+    "start": "tsx server.ts",
+    "dev": "tsx server.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

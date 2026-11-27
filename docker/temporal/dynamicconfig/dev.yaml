@@ -1,0 +1,5 @@
+# Temporal 本地开发动态配置（T-E01-03）。
+# 允许标准历史活动默认值，本地开发不做吞吐限制。
+limits:
+  maxConcurrentActivityExecutionSize: 1000
+  maxConcurrentWorkflowTaskExecutionSize: 1000

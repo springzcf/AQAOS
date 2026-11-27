@@ -1,0 +1,13 @@
+{
+  "name": "@aqaos/worker-environment",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AQAOS environment worker — Compose 环境引擎: stack up/down/reset/seed (DDD §12), slot scheduling, resource budgets.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  }
+}

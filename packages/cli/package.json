@@ -1,16 +1,17 @@
 {
-  "name": "@qa-swarm/cli",
+  "name": "@aqaos/cli",
   "version": "0.1.0",
   "type": "module",
+  "description": "AQAOS CLI client — run/plan/approve/report entry points for operators and CI.",
   "bin": {
-    "qa-swarm": "./dist/index.js"
+    "aqaos": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsc -b"
   },
   "dependencies": {
-    "@qa-swarm/core": "*",
+    "@aqaos/core": "*",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "dotenv": "^16.4.7"

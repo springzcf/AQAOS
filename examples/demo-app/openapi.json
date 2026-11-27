@@ -1,8 +1,60 @@
 {
   "openapi": "3.0.3",
-  "info": { "title": "QA-Swarm Demo API", "version": "1.0.0" },
+  "info": {
+    "title": "AQAOS Demo Target API",
+    "version": "2.0.0",
+    "description": "评测靶标 API（T-E01-06）。注意：/api/users 的响应实现故意泄漏 passwordHash（BUG-02），与本文档契约不符——契约漂移即检测面。"
+  },
   "servers": [{ "url": "http://localhost:4318" }],
+  "tags": [
+    { "name": "auth" },
+    { "name": "users" },
+    { "name": "products" },
+    { "name": "orders" },
+    { "name": "perf" },
+    { "name": "system" }
+  ],
   "paths": {
+    "/login": {
+      "post": {
+        "summary": "Sign in (fixed demo credentials)",
+        "operationId": "login",
+        "tags": ["auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; returns a fixed session token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "token": { "type": "string" },
+                    "user": { "$ref": "#/components/schemas/PublicUser" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unknown email" }
+        }
+      }
+    },
     "/api/users": {
       "get": {
         "summary": "List users",
@@ -10,19 +62,12 @@
         "tags": ["users"],
         "responses": {
           "200": {
-            "description": "A list of users",
+            "description": "A list of public users (contract excludes passwordHash)",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": { "type": "integer" },
-                      "name": { "type": "string" },
-                      "email": { "type": "string" }
-                    }
-                  }
+                  "items": { "$ref": "#/components/schemas/PublicUser" }
                 }
               }
             }
@@ -47,7 +92,8 @@
                     "properties": {
                       "id": { "type": "integer" },
                       "name": { "type": "string" },
-                      "price": { "type": "number" }
+                      "price": { "type": "number" },
+                      "category": { "type": "string", "enum": ["laptop", "accessory"] }
                     }
                   }
                 }
@@ -57,9 +103,107 @@
         }
       }
     },
+    "/api/products/{id}": {
+      "get": {
+        "summary": "Get one product",
+        "operationId": "getProduct",
+        "tags": ["products"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "price": { "type": "number" },
+                    "category": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Unknown product" }
+        }
+      }
+    },
+    "/api/orders": {
+      "post": {
+        "summary": "Create an order (admin/user expected; viewer is a known authz bug)",
+        "operationId": "createOrder",
+        "tags": ["orders"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["productId", "qty"],
+                      "properties": {
+                        "productId": { "type": "integer" },
+                        "qty": { "type": "integer", "minimum": 1 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created. Business rule: total = 1.08 × Σ(qty×price) — the implementation omits tax (BUG-08)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "userId": { "type": "integer" },
+                    "total": { "type": "number" },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid items" },
+          "401": { "description": "Login required" }
+        }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "summary": "Get one order (ownership not enforced — known IDOR bug BUG-07)",
+        "operationId": "getOrder",
+        "tags": ["orders"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "The order" },
+          "401": { "description": "Login required" },
+          "404": { "description": "Unknown order" }
+        }
+      }
+    },
     "/api/slow": {
       "get": {
-        "summary": "A slow endpoint",
+        "summary": "A slow endpoint (intentional perf regression, BUG-05)",
         "operationId": "slow",
         "tags": ["perf"],
         "responses": { "200": { "description": "ok" } }
@@ -69,7 +213,25 @@
       "get": {
         "summary": "Health check",
         "operationId": "health",
+        "tags": ["system"],
         "responses": { "200": { "description": "ok" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "PublicUser": {
+        "type": "object",
+        "description": "Public projection — passwordHash MUST NOT appear (see BUG-02)",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string", "enum": ["admin", "user", "viewer"] }
+        }
       }
     }
   }

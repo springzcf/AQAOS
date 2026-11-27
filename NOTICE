@@ -1,0 +1,28 @@
+AQAOS (Autonomous QA Operating System)
+Copyright (c) 2026 AQAOS Contributors
+
+This product includes software developed as a derivative work of QA-Swarm.
+
+=== QA-Swarm ===
+Upstream project: QA-Swarm — an open-source swarm of AI agents that explore
+apps, generate tests, run them, triage failures, file bugs, and build
+regression suites.
+Copyright (c) 2026 Bhaskar Kaphle
+Licensed under the MIT License (see LICENSE).
+
+ Portions of the following source trees originate from QA-Swarm and have
+been modified for AQAOS:
+  - packages/core/src/agents/        (explorer, test-generator, executor, triage, security, performance, reporter, base)
+  - packages/core/src/tools/         (browser, api, openapi, issue-tracker, db)
+  - packages/core/src/memory/        (memory, store)
+  - packages/core/src/selfheal/      (locator-healer, quarantine)
+  - packages/core/src/report/        (markdown, writer, render-playwright)
+  - packages/core/src/llm/           (prompts, provider)
+  - packages/cli/src/
+  - apps/api/src/, apps/web/
+  - examples/demo-app/
+  - tests/regression/
+
+This NOTICE exists to comply with the attribution requirement of good
+open-source practice. The MIT License text is reproduced in the LICENSE
+file, which applies to the entire repository.

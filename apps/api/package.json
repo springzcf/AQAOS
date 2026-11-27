@@ -1,13 +1,18 @@
 {
-  "name": "@qa-swarm/api",
+  "name": "@aqaos/api",
   "version": "0.1.0",
   "type": "module",
+  "description": "AQAOS API service — control-plane REST + SSE (NestJS rewrite lands with T-E02-09).",
   "scripts": {
     "dev": "tsx src/server.ts",
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "build": "tsc -b"
   },
   "dependencies": {
-    "@qa-swarm/core": "*",
+    "@aqaos/core": "*",
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0"
   }
 }

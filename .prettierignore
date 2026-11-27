@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+coverage
+qa-swarm-out
+qa-out
+test-results
+playwright-report
+package-lock.json
+docs

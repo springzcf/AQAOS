@@ -1,0 +1,21 @@
+{
+  "name": "@aqaos/dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AQAOS dashboard — Next.js App Router control plane UI (runs, agents, approvals, reports, quality metrics).",
+  "scripts": {
+    "dev": "next dev -p 3400",
+    "build": "next build",
+    "start": "next start -p 3400",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  }
+}

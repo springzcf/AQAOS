@@ -1,29 +1,66 @@
 import express from "express";
+import {
+    computeTotal,
+    fixedTokens,
+    products,
+    publicUser,
+    seedOrders,
+    seedUsers,
+    type Order,
+    type User,
+} from "./data.js";
 
 /**
- * A deliberately-flawed demo application for QA-Swarm to explore.
+ * AQAOS 评测靶标（T-E01-06，演进自 QA-Swarm demo-app）。
  *
- * It ships with real, findable bugs so the "I gave it a URL and it found
- * bugs" demo is honest:
- *
- *  1. `/login` accepts any password for a known email (auth bypass).
- *  2. `/api/users` leaks the `passwordHash` field (data exposure).
- *  3. `/search` reflects the query unescaped into HTML (reflected XSS).
- *  4. Missing security headers on every response.
- *  5. `/api/slow` sleeps 1.5s (performance regression).
+ * 故意携带 8 个真实可发现缺陷（完整清单见 known-bugs.json）：
+ *  1. /login 已知邮箱任意密码即可登录（auth bypass）
+ *  2. /api/users 泄漏 passwordHash（数据暴露）
+ *  3. /search 反射型 XSS
+ *  4. 全站缺失安全响应头
+ *  5. /api/slow 1.5s 人为延迟（性能预算超限）
+ *  6. /api/orders 不校验角色：viewer 也可下单（越权）
+ *  7. /api/orders/:id 不校验归属（IDOR）
+ *  8. /api/orders 订单总额漏算税费（业务规则缺陷）
  *
  * DO NOT copy this into a real project.
  */
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const users = [
-  { id: 1, name: "Ada Lovelace", email: "ada@example.com", passwordHash: "sha256:deadbeef" },
-  { id: 2, name: "Alan Turing", email: "alan@example.com", passwordHash: "sha256:cafebabe" },
-];
+// BUG 4: 安全响应头从不设置（CSP/HSTS/X-Frame-Options 等全缺）。
 
-// BUG 4: no security headers are ever set.
+// --- 会话（固定令牌，确定性评测） ------------------------------------------
+
+interface Session {
+    userId: number;
+    role: User["role"];
+}
+const sessions = new Map<string, Session>();
+for (const [token, userId] of Object.entries(fixedTokens)) {
+    const user = seedUsers.find((u) => u.id === userId);
+    if (user) sessions.set(token, { userId, role: user.role });
+}
+
+declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
+    namespace Express {
+        interface Request {
+            session?: Session;
+        }
+    }
+}
+
+app.use((req, _res, next) => {
+    const bearer = req.headers.authorization?.match(/^Bearer (\S+)$/)?.[1];
+    const token = bearer ?? (req.headers.cookie ?? "").match(/session=(\S+)/)?.[1];
+    if (token) req.session = sessions.get(token);
+    next();
+});
+
+// --- 页面 -------------------------------------------------------------------
 
 const page = (title: string, body: string) => `<!doctype html>
 <html lang="en">
@@ -36,70 +73,135 @@ const page = (title: string, body: string) => `<!doctype html>
 </html>`;
 
 app.get("/", (_req, res) => {
-  res.send(page("Demo Shop", `<p>Welcome to the QA-Swarm demo app.</p>
+    res.send(
+        page(
+            "Demo Shop",
+            `<p>Welcome to the AQAOS demo target.</p>
     <form action="/search" method="get">
       <label for="q">Search products</label>
       <input id="q" name="q" placeholder="e.g. laptop" />
       <button type="submit">Search</button>
-    </form>`));
+    </form>`,
+        ),
+    );
 });
 
 app.get("/login", (_req, res) => {
-  res.send(page("Login", `<form id="login-form" action="/login" method="post">
+    res.send(
+        page(
+            "Login",
+            `<form id="login-form" action="/login" method="post">
     <label for="email">Email</label>
     <input id="email" name="email" type="email" required />
     <label for="password">Password</label>
     <input id="password" name="password" type="password" required />
     <button type="submit">Sign in</button>
-  </form>`));
+  </form>`,
+        ),
+    );
 });
 
 app.post("/login", (req, res) => {
-  const { email, password } = req.body ?? {};
-  // BUG 1: trivial auth bypass — any password works for a known email.
-  if (email && (password === "password" || users.some((u) => u.email === email))) {
-    res.send(page("Dashboard", `<p>Signed in as <strong>${email}</strong></p>
-      <button data-testid="logout">Log out</button>`));
-    return;
-  }
-  res.status(401).send(page("Login", `<p role="alert">Invalid credentials</p>`));
+    const { email } = req.body ?? {};
+    // BUG 1: 已知邮箱任意密码即可登录（auth bypass）。
+    const user = seedUsers.find((u) => u.email === email);
+    if (user) {
+        const token = `tok-${user.role}-${String(user.id).padStart(3, "0")}`;
+        sessions.set(token, { userId: user.id, role: user.role });
+        res.setHeader("set-cookie", `session=${token}; Path=/`);
+        return res.json({ ok: true, token, user: publicUser(user) });
+    }
+    res.status(401).json({ ok: false, error: "invalid credentials" });
 });
 
 app.get("/search", (req, res) => {
-  const q = String(req.query.q ?? "");
-  // BUG 3: reflected XSS — q is interpolated without escaping.
-  res.send(page("Search results", `<p>Results for: ${q}</p>
-    <ul><li>Laptop Pro — $1299</li><li>Laptop Air — $999</li></ul>`));
+    const q = String(req.query.q ?? "");
+    // BUG 3: 反射型 XSS — q 未转义直接内插。
+    res.send(
+        page(
+            "Search results",
+            `<p>Results for: ${q}</p>
+    <ul><li>Laptop Pro — $1299</li><li>Laptop Air — $999</li></ul>`,
+        ),
+    );
 });
 
-app.get("/users", (_req, res) => {
-  res.send(page("Users", `<table id="users">
-    <thead><tr><th>ID</th><th>Name</th><th>Email</th></tr></thead>
-    <tbody>${users.map((u) => `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.email}</td></tr>`).join("")}</tbody>
-  </table>`));
+app.get("/users", (req, res) => {
+    // BUG 6 的页面侧：仅要求"已登录"，不校验 admin 角色。
+    if (!req.session) {
+        return res.status(401).send(page("Login", `<p role="alert">Sign in required</p>`));
+    }
+    res.send(
+        page(
+            "Users",
+            `<table id="users"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th></tr></thead><tbody>${seedUsers
+                .map((u) => {
+                    const p = publicUser(u);
+                    return `<tr><td>${p.id}</td><td>${p.name}</td><td>${p.email}</td><td>${p.role}</td></tr>`;
+                })
+                .join("")}</tbody></table>`,
+        ),
+    );
 });
+
+// --- API --------------------------------------------------------------------
 
 app.get("/api/users", (_req, res) => {
-  // BUG 2: leaks passwordHash.
-  res.json(users);
+    // BUG 2: 直接返回完整对象，泄漏 passwordHash。
+    res.json(seedUsers);
 });
 
 app.get("/api/products", (_req, res) => {
-  res.json([
-    { id: 1, name: "Laptop Pro", price: 1299 },
-    { id: 2, name: "Laptop Air", price: 999 },
-  ]);
+    res.json(products);
+});
+
+app.get("/api/products/:id", (req, res) => {
+    const p = products.find((x) => x.id === Number(req.params.id));
+    if (!p) return res.status(404).json({ error: "product not found" });
+    res.json(p);
+});
+
+const orders: Order[] = [...seedOrders];
+
+app.post("/api/orders", (req, res) => {
+    // BUG 6: 任何已登录角色（含 viewer）都能创建订单。
+    if (!req.session) return res.status(401).json({ error: "login required" });
+    const items = Array.isArray(req.body?.items) ? req.body.items : null;
+    const valid =
+        items &&
+        items.every(
+            (it: { productId?: number; qty?: number }) =>
+                Number.isInteger(it?.productId) && (it?.qty ?? 0) > 0,
+        );
+    if (!valid) return res.status(400).json({ error: "items[] with productId/qty required" });
+    const order: Order = {
+        id: 1000 + orders.length + 1,
+        userId: req.session.userId,
+        items,
+        total: computeTotal(items), // BUG 8: 漏算税费。
+        createdAt: new Date().toISOString(),
+    };
+    orders.push(order);
+    res.status(201).json(order);
+});
+
+app.get("/api/orders/:id", (req, res) => {
+    if (!req.session) return res.status(401).json({ error: "login required" });
+    const order = orders.find((o) => o.id === Number(req.params.id));
+    if (!order) return res.status(404).json({ error: "order not found" });
+    // BUG 7: 不校验订单归属（IDOR）——任何登录用户可读他人订单。
+    res.json(order);
 });
 
 app.get("/api/slow", async (_req, res) => {
-  // BUG 5: 1.5s artificial latency.
-  await new Promise((r) => setTimeout(r, 1500));
-  res.json({ ok: true, note: "this endpoint is intentionally slow" });
+    // BUG 5: 1.5s 人为延迟（超出默认 TTFB 预算 800ms）。
+    await new Promise((r) => setTimeout(r, 1500));
+    res.json({ ok: true, note: "this endpoint is intentionally slow" });
 });
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const port = Number(process.env.PORT ?? 4318);
 app.listen(port, () => {
-  console.log(`demo app on http://localhost:${port}`);
+    console.log(`demo app (aqaos evaluation target) on http://localhost:${port}`);
 });

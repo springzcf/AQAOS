@@ -1,0 +1,4 @@
+# AQAOS pre-commit gate (T-E01-02): fast checks only — lint + unit tests.
+# Full verification (typecheck, build, e2e) runs in CI.
+npx eslint .
+npx vitest run --silent

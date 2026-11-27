@@ -2,6 +2,13 @@
   "files": [],
   "references": [
     { "path": "packages/core" },
-    { "path": "packages/cli" }
+    { "path": "packages/domain" },
+    { "path": "packages/contracts" },
+    { "path": "packages/cli" },
+    { "path": "apps/api" },
+    { "path": "workers/agent" },
+    { "path": "workers/web" },
+    { "path": "workers/api" },
+    { "path": "workers/environment" }
   ]
 }

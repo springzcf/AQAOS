@@ -1,0 +1,17 @@
+{
+  "name": "@aqaos/contracts",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AQAOS API contracts — REST request/response DTOs, SSE event payloads, error codes (DDD §8, §16).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

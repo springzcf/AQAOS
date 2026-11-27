@@ -1,0 +1,85 @@
+{
+  "$schema": "./known-bugs.schema.md",
+  "description": "AQAOS 评测靶标已知缺陷清单（T-E01-06）。Golden Dataset（T-E02-13）据此构建：每条缺陷都应能被平台的至少一种能力稳定发现，用于度量召回率与误报率。",
+  "target": "examples/demo-app",
+  "bugs": [
+    {
+      "id": "BUG-01",
+      "title": "登录认证绕过：已知邮箱任意密码可登录",
+      "category": "auth",
+      "endpoint": "POST /login",
+      "evidence": "seedUsers 中任一邮箱 + 任意密码返回 200 与 token",
+      "expected_detection": [
+        "explorer+test-generator（auth: reject invalid credentials 意图）",
+        "security（会话 agent）"
+      ],
+      "severity": "critical"
+    },
+    {
+      "id": "BUG-02",
+      "title": "用户接口泄漏口令哈希",
+      "category": "data-exposure",
+      "endpoint": "GET /api/users",
+      "evidence": "响应数组元素含 passwordHash 字段",
+      "expected_detection": [
+        "api 契约测试（OpenAPI schema 不含该字段 → 契约漂移）",
+        "security（确定性/会话）"
+      ],
+      "severity": "critical"
+    },
+    {
+      "id": "BUG-03",
+      "title": "搜索反射型 XSS",
+      "category": "xss",
+      "endpoint": "GET /search?q=",
+      "evidence": "q 值未转义直接内插 HTML（注入 <script> 可执行）",
+      "expected_detection": ["security（会话 agent 分析响应体）"],
+      "severity": "high"
+    },
+    {
+      "id": "BUG-04",
+      "title": "全站缺失安全响应头",
+      "category": "headers",
+      "endpoint": "所有响应",
+      "evidence": "缺少 CSP/X-Frame-Options/HSTS/X-Content-Type-Options/Referrer-Policy",
+      "expected_detection": ["security 确定性检查（checkHeaders 直接命中）"],
+      "severity": "medium"
+    },
+    {
+      "id": "BUG-05",
+      "title": "慢接口超出性能预算",
+      "category": "performance",
+      "endpoint": "GET /api/slow",
+      "evidence": "TTFB ≈1500ms，超默认预算 800ms",
+      "expected_detection": ["performance 程序型预算检查（ttfb 超限）"],
+      "severity": "medium"
+    },
+    {
+      "id": "BUG-06",
+      "title": "下单不校验角色（viewer 可下单）",
+      "category": "authz",
+      "endpoint": "POST /api/orders",
+      "evidence": "tok-viewer-001 令牌创建订单返回 201",
+      "expected_detection": ["api 契约/业务规则用例（角色权限矩阵）"],
+      "severity": "high"
+    },
+    {
+      "id": "BUG-07",
+      "title": "订单详情不校验归属（IDOR）",
+      "category": "idor",
+      "endpoint": "GET /api/orders/:id",
+      "evidence": "user 令牌可读取 userId=1 的订单 1001",
+      "expected_detection": ["api 契约/业务规则用例（越权矩阵）"],
+      "severity": "high"
+    },
+    {
+      "id": "BUG-08",
+      "title": "订单总额漏算税费",
+      "category": "logic",
+      "endpoint": "POST /api/orders",
+      "evidence": "1×Laptop Pro 下单 total=1299，业务规则应为 1299×1.08=1402.92",
+      "expected_detection": ["test-generator（业务断言）+ triage（product-bug 分类）"],
+      "severity": "medium"
+    }
+  ]
+}

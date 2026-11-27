@@ -1,0 +1,34 @@
+# AQAOS 模型网关路由表（T-E01-03，SDD §6.5）。
+#
+# LiteLLM 以 Anthropic Messages 协议兼容端点（/v1/messages）对外服务，
+# Agent Runtime 统一通过 ANTHROPIC_BASE_URL=http://localhost:4000 接入。
+# 上游密钥从环境变量注入（ANTHROPIC_API_KEY / OPENAI_API_KEY），
+# 网关侧执行预算、审计与降级（离线模式回退 MockProvider）。
+
+model_list:
+  # 主力推理模型（规划/生成/根因分析）
+  - model_name: claude-sonnet-5-5
+    litellm_params:
+      model: anthropic/claude-sonnet-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # 轻量模型（分类/摘要等低成本任务）
+  - model_name: claude-haiku-5-5
+    litellm_params:
+      model: anthropic/claude-haiku-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # 重度推理模型（默认关闭，仅在根因分析等场景显式调用）
+  - model_name: claude-opus-5-5
+    litellm_params:
+      model: anthropic/claude-opus-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+litellm_settings:
+  drop_params: true
+  # 请求级预算防线（SDD §6.5 三层预算的网关层）
+  max_budget: 100
+  budget_duration: "1d"
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

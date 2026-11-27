@@ -1,0 +1,12 @@
+# AQAOS 评测靶标独立 Compose 栈（T-E01-06）。
+# 用途：无需本地 Node 环境即可拉起被测应用（CI / 演示 / Agent 评测）。
+#   docker compose -f examples/demo-app/docker-compose.yml up -d
+#   → http://localhost:4318
+name: aqaos-demo-target
+
+services:
+  demo-app:
+    build: .
+    ports:
+      - "4318:4318"
+    restart: unless-stopped

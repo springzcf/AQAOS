@@ -1,7 +1,8 @@
 {
-  "name": "@qa-swarm/core",
+  "name": "@aqaos/core",
   "version": "0.1.0",
   "type": "module",
+  "description": "AQAOS core library — evolved from QA-Swarm: agents, tools, memory, self-heal, report rendering.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
