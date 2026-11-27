@@ -1,28 +1,30 @@
 /**
- * AQAOS domain layer (skeleton — T-E01-01).
+ * AQAOS domain layer（T-E02-01 实装：DDD §2/§3 领域契约 + §7.3 枚举字典）。
  *
- * Target content (M1): the 33-table domain model of DDD §7.2 as TypeScript
- * entities and value objects — Application, TestRun, RunStep, TestCase,
- * TestScript, Bug, Approval, AgentSession, EnvironmentStack, Schedule,
- * Integration, FeedbackSignal, QualityMetric — plus the state machines of
- * DDD §5.5 (run, environment, test case, bug, approval) as pure transition
- * functions, and the enum dictionary of DDD §7.3 as the single source for
- * `@aqaos/contracts`.
+ * 依赖规则（SDD §6.2）：本包不引入上层（contracts/api/worker）依赖，除 zod 外
+ * 零运行时依赖——纯类型与纯函数，无 I/O。zod Schema 与类型经 z.infer 同源导出，
+ * 校验器与类型永不漂移；前后端/Worker 以本包为唯一类型来源（T-E02-01 验收）。
  *
- * Rules (SDD §6.2 dependency direction):
- *  - this package may not import anything above the domain layer;
- *  - no I/O, no framework, no runtime — pure domain logic only.
+ * 后续演进：
+ * - T-E02-12：§5.5 状态机转移函数（Run/环境/用例/Bug/审批）；
+ * - T-E02-02/T-E02-04 已实装：agent 契约 + 16 角色 prompt 骨架与版本化策略；
+ * - db/enum-dictionary.ts re-export 本包 enums（CHECK 约束同源）。
  */
 
-export const DOMAIN_LAYER_VERSION = "0.1.0-skeleton";
+export const DOMAIN_LAYER_VERSION = "0.6.0";
 
-/** Placeholder until T-E07-01 lands the real entity set. */
-export interface DomainPlaceholder {
-    readonly layer: "domain";
-    readonly version: string;
-}
-
-export const domainInfo: DomainPlaceholder = {
-    layer: "domain",
-    version: DOMAIN_LAYER_VERSION,
-};
+export * from "./common.js";
+export * from "./enums.js";
+export * from "./application.js";
+export * from "./environment.js";
+export * from "./run.js";
+export * from "./agent.js";
+export * from "./agent-prompts.js";
+export * from "./planner-plan.js";
+export * from "./product-model.js";
+export * from "./test-strategy.js";
+export * from "./memory.js";
+export * from "./qa-plan.js";
+export * from "./evidence.js";
+export * from "./mcp-tools.js";
+export * from "./rules.js";

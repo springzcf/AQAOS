@@ -14,8 +14,10 @@
   "engines": {
     "node": ">=20"
   },
+  "overrides": {
+    "light-my-request": "6.1.0"
+  },
   "scripts": {
-    "prepare": "husky",
     "build": "tsc -b",
     "build:dashboard": "npm run build --workspace @aqaos/dashboard",
     "typecheck": "tsc -b --force && tsc -p db/tsconfig.json",

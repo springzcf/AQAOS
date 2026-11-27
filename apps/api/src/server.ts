@@ -1,156 +1,103 @@
-import express from "express";
-import {
-    DEFAULT_CONFIG,
-    SwarmGraph,
-    validateEnv,
-    writeRunArtifacts,
-    type AgentLogEntry,
-    type SwarmConfig,
-    type SwarmState,
-} from "@aqaos/core";
-
-// T-E01-05: production refuses to boot without required secrets.
-validateEnv();
-
 /**
- * Thin HTTP API around the swarm (transition service).
+ * AQAOS Control Plane API（T-E01-08 Fastify 重建；T-E01-09 接入认证基座；
+ * 原 express 单文件过渡服务退役，过渡期的离线 swarm 能力由 packages/cli 承接）。
  *
- *   GET  /health        — liveness + run count
- *   GET  /              — pointer to the dashboard (apps/dashboard, Next.js)
- *   POST  /runs         — start a swarm run (fire-and-forget)
- *   GET  /runs          — list all runs (summary)
- *   GET  /runs/:id      — full run state (summary, bugs, results, logs)
- *
- * Runs are kept in memory — this is a control plane for demos and small
- * teams, not a durable job queue. The full NestJS control plane with
- * persistence, auth, and SSE lands with T-E02-09 (audit §3.27).
+ * 组装：requestId → 错误契约 → 认证（先于幂等，401/403 不进幂等缓存）→
+ * Idempotency-Key → 审计留痕 → OpenAPI → 探针 → auth/account/audit/
+ * mcpTools/agent-definitions/v1 路由。
+ * `buildApp()` 为纯组装（测试用 fastify.inject 进程内驱动）；
+ * 直接运行（tsx apps/api/src/server.ts / npm run api）时校验环境并监听 4317。
  */
-const app = express();
-app.use(express.json({ limit: "1mb" }));
 
-interface Run {
-    id: string;
-    status: "running" | "done" | "failed";
-    startedAt: string;
-    finishedAt?: string;
-    state?: SwarmState;
-    logs: AgentLogEntry[];
-    error?: string;
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { validateEnv } from "@aqaos/core";
+import Fastify, { type FastifyInstance } from "fastify";
+import { createDbPool, type DbPool } from "./lib/db.js";
+import { InMemoryIdempotencyStore } from "./lib/idempotency-store.js";
+import { auditPlugin } from "./plugins/audit.js";
+import { authPlugin } from "./plugins/auth.js";
+import { errorHandlerPlugin } from "./plugins/error-handler.js";
+import { idempotencyPlugin } from "./plugins/idempotency.js";
+import { openapiPlugin } from "./plugins/openapi.js";
+import { generateRequestId, requestIdPlugin } from "./plugins/request-id.js";
+import { accountRoutes } from "./routes/account.js";
+import { agentDefinitionRoutes } from "./routes/agent-definitions.js";
+import { auditRoutes } from "./routes/audit.js";
+import { authRoutes } from "./routes/auth.js";
+import { healthRoutes } from "./routes/health.js";
+import { mcpToolRoutes } from "./routes/mcp-tools.js";
+import { v1Routes } from "./routes/v1.js";
+import { serviceVersion } from "./version.js";
+
+export interface BuildAppOptions {
+    /** 就绪检查与认证/资源路由共用的数据库连接串（不设则相关能力报 501/skipped）。 */
+    databaseUrl?: string;
+    /** JWT 签发密钥（缺省回落 process.env.JWT_SECRET；登录与 JWT 校验依赖它）。 */
+    jwtSecret?: string;
+    /** 幂等缓存 TTL（毫秒），测试用短值验证过期。 */
+    idempotencyTtlMs?: number;
+    /** pino 日志级别（测试传 silent）。 */
+    logLevel?: string;
 }
 
-const runs = new Map<string, Run>();
-const startedAt = Date.now();
-
-app.get("/health", (_req, res) => {
-    res.json({
-        ok: true,
-        runs: runs.size,
-        version: "0.1.0",
-        uptime: Math.round((Date.now() - startedAt) / 1000),
+export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
+    const app = Fastify({
+        genReqId: generateRequestId,
+        bodyLimit: 1024 * 1024,
+        logger: { level: options.logLevel ?? "info" },
     });
-});
 
-// The static QA-Swarm dashboard (apps/web) was removed per audit §3.28;
-// the Next.js dashboard (apps/dashboard) serves itself on port 3400.
-app.get(["/", "/ui"], (_req, res) => {
-    res.status(200)
-        .type("text")
-        .send(
-            "AQAOS dashboard moved: run `npm run dev --workspace @aqaos/dashboard` → http://localhost:3400",
-        );
-});
-
-app.post("/runs", async (req, res) => {
-    const body = req.body as Partial<SwarmConfig> & { target?: string };
-    if (!body.target) {
-        res.status(400).json({ error: "target is required" });
-        return;
+    const db: DbPool | undefined = options.databaseUrl
+        ? createDbPool(options.databaseUrl)
+        : undefined;
+    if (db) {
+        app.addHook("onClose", async () => {
+            await db.end();
+        });
     }
+    const jwtSecret = options.jwtSecret ?? process.env.JWT_SECRET;
 
-    const config: SwarmConfig = { ...DEFAULT_CONFIG, ...body, target: body.target };
-    const id = `run-${Date.now().toString(36)}`;
-    const run: Run = {
-        id,
-        status: "running",
-        startedAt: new Date().toISOString(),
-        logs: [],
-    };
-    runs.set(id, run);
-
-    // Fire and forget — the client polls /runs/:id.
-    void (async () => {
-        try {
-            const graph = new SwarmGraph(config, {
-                onLog: (e) => {
-                    run.logs.push(e);
-                    if (run.logs.length > 5000) run.logs.splice(0, run.logs.length - 5000);
-                },
-            });
-            const state = await graph.run();
-            run.state = state;
-            run.status = state.phase === "failed" ? "failed" : "done";
-            run.finishedAt = new Date().toISOString();
-            await writeRunArtifacts(state);
-        } catch (err) {
-            run.status = "failed";
-            run.error = (err as Error).message;
-            run.finishedAt = new Date().toISOString();
-        }
-    })();
-
-    res.status(202).json({ id, status: "running", poll: `/runs/${id}` });
-});
-
-app.get("/runs", (_req, res) => {
-    res.json(
-        [...runs.values()].map((r) => ({
-            id: r.id,
-            status: r.status,
-            startedAt: r.startedAt,
-            finishedAt: r.finishedAt,
-            tests: r.state?.tests.length ?? 0,
-            bugs: r.state?.bugs.length ?? 0,
-        })),
-    );
-});
-
-app.get("/runs/:id", (req, res) => {
-    const run = runs.get(req.params.id);
-    if (!run) {
-        res.status(404).json({ error: "run not found" });
-        return;
-    }
-    res.json({
-        id: run.id,
-        status: run.status,
-        startedAt: run.startedAt,
-        finishedAt: run.finishedAt,
-        error: run.error,
-        summary: run.state
-            ? {
-                  phase: run.state.phase,
-                  pages: run.state.pages.length,
-                  endpoints: run.state.apiEndpoints.length,
-                  tests: run.state.tests.length,
-                  results: run.state.results.length,
-                  passed: run.state.results.filter((r) => r.status === "passed").length,
-                  failed: run.state.results.filter((r) => r.status === "failed").length,
-                  bugs: run.state.bugs.length,
-                  securityFindings: run.state.securityFindings.length,
-                  performanceFindings: run.state.performanceFindings.length,
-                  coverageGaps: run.state.coverageGaps.length,
-                  usage: run.state.usage,
-              }
-            : undefined,
-        bugs: run.state?.bugs ?? [],
-        results: run.state?.results ?? [],
-        logs: run.logs.slice(-200),
+    await app.register(requestIdPlugin);
+    await app.register(errorHandlerPlugin);
+    await app.register(authPlugin, { jwtSecret, db });
+    await app.register(idempotencyPlugin, {
+        store: new InMemoryIdempotencyStore({ ttlMs: options.idempotencyTtlMs }),
     });
-});
+    await app.register(auditPlugin, { db });
+    await app.register(openapiPlugin, { version: serviceVersion() });
+    await app.register(healthRoutes, { databaseUrl: options.databaseUrl });
+    await app.register(authRoutes, { db, jwtSecret });
+    await app.register(accountRoutes, { db });
+    await app.register(auditRoutes, { db });
+    await app.register(mcpToolRoutes, { db });
+    await app.register(agentDefinitionRoutes, { db });
+    await app.register(v1Routes);
 
-const port = Number(process.env.PORT ?? 4317);
-app.listen(port, () => {
-    console.log(`qa-swarm api + dashboard → http://localhost:${port}`);
-    console.log(`  health:  http://localhost:${port}/health`);
-    console.log(`  dashboard: http://localhost:${port}/`);
-});
+    app.get("/", { schema: { hide: true } }, async () => {
+        return "AQAOS control plane. Dashboard: http://localhost:3400 | API docs: /docs | OpenAPI: /openapi.json";
+    });
+
+    return app;
+}
+
+async function main(): Promise<void> {
+    // 生产缺密钥拒启（T-E01-05）；测试经 buildApp 组装不受影响。
+    validateEnv();
+    const app = await buildApp({
+        databaseUrl: process.env.DATABASE_URL,
+        logLevel: process.env.LOG_LEVEL,
+    });
+    const port = Number(process.env.PORT ?? 4317);
+    const host = process.env.HOST ?? "0.0.0.0";
+    await app.listen({ port, host });
+    app.log.info(`AQAOS control plane listening on ${host}:${port} (docs: /docs)`);
+}
+
+const invokedDirectly =
+    process.argv[1] !== undefined &&
+    import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+
+if (invokedDirectly) {
+    void main();
+}

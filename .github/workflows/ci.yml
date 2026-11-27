@@ -47,6 +47,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Typecheck dashboard
+        run: npm run typecheck --workspace @aqaos/dashboard
       - name: Build Next.js dashboard
         run: npm run build --workspace @aqaos/dashboard
 

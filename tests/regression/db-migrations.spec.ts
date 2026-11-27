@@ -1,6 +1,6 @@
 /**
  * 迁移全生命周期回归（T-E01-07 验收证据）：
- * 空库一键建表（33 表）→ RLS 骨架（18 表）→ 枚举 CHECK 拒绝非法值 →
+ * 空库一键建表（34 表，含 V1.5 api_tokens）→ RLS 骨架（18 表）→ 枚举 CHECK 拒绝非法值 →
  * 非属主角色受 RLS 约束 → down 清空 → 再 up 可重放。
  *
  * 需要 PostgreSQL（pgvector 镜像）：AQAOS_TEST_DATABASE_URL 指向 scratch 库
@@ -17,10 +17,11 @@ const TEST_DB_URL = process.env.AQAOS_TEST_DATABASE_URL;
 const MIGRATIONS_DIR = path.resolve(fileURLToPath(new URL("../../db/migrations", import.meta.url)));
 const RLS_PROBE_ROLE = "aqaos_rls_probe";
 
-/** DDD §7.1 的 33 张核心表（与文档一对一，migration 漂移即失败）。 */
+/** DDD §7.1 的 34 张核心表（与文档一对一，migration 漂移即失败；api_tokens 为 V1.5 增补）。 */
 const EXPECTED_TABLES = [
     "agent_definitions",
     "agent_runs",
+    "api_tokens",
     "applications",
     "approval_requests",
     "audit_logs",
@@ -129,7 +130,7 @@ describe.skipIf(!TEST_DB_URL)("db migrations (T-E01-07)", () => {
         }
     }, 60_000);
 
-    it("空库一键建表：33 张核心表与 DDD §7.1 一致", async () => {
+    it("空库一键建表：34 张核心表与 DDD §7.1 一致", async () => {
         expect(await listTables(db)).toEqual(EXPECTED_TABLES);
     });
 

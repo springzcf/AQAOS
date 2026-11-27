@@ -1,57 +1,24 @@
 /**
- * 数据库枚举字典（T-E01-07）。
+ * 数据库枚举字典（T-E01-07 建立；T-E02-01 起字典本体移驻领域层单一事实源）。
  *
- * 单一事实源：docs/03-详细设计说明书.md §7.3 枚举字典。
- * - DB CHECK 约束由各 migration 通过 {@link enumCheckSql} 从本字典生成，禁止手抄值列表；
- * - T-E02-01 Domain Contracts 的 zod 枚举必须从本文件导入；
- * - tests/regression/enum-dictionary.spec.ts 逐值断言本文件与 DDD §7.3 一致（防文档/代码漂移）。
+ * - 字典真身：packages/domain/src/enums.ts（ENUM_DICTIONARY 与 zod Schema 同源导出，
+ *   前后端/Worker 唯一校验入口）；本文件经相对源码导入 re-export——db 是仓库内
+ *   脚本目录（非 workspace 包），走 dist 会给 migration-check CI 引入构建依赖，
+ *   源码直连 + tsx 按需编译是零耦合的等价通道；
+ * - DB CHECK 约束由各 migration 通过 {@link enumCheckSql} 从字典生成，禁止手抄值列表；
+ * - tests/regression/enum-dictionary.spec.ts 逐值断言字典与 DDD §7.3 一致（防文档/代码漂移）。
  */
 
-export const ENUM_DICTIONARY = {
-    runStatus: ["queued", "running", "paused", "blocked", "completed", "failed", "cancelled"],
-    environmentStackStatus: ["unprovisioned", "provisioning", "ready", "failed", "stopped"],
-    testCaseStatus: ["draft", "active", "deprecated"],
-    reviewStatus: ["pending", "approved", "rejected"],
-    bugSeverity: ["critical", "high", "medium", "low"],
-    bugStatus: [
-        "candidate",
-        "triaging",
-        "verifying",
-        "verified",
-        "rejected",
-        "open",
-        "fixed",
-        "regression_passed",
-        "reopened",
-    ],
-    failureClassification: [
-        "product-bug",
-        "test-bug",
-        "environment",
-        "network",
-        "flaky",
-        "model-error",
-        "unknown",
-    ],
-    approvalStatus: ["pending", "approved", "rejected", "expired"],
-    approvalRiskLevel: ["medium", "high", "critical"],
-    memoryKind: ["product", "exploration", "test", "bug", "feedback"],
-    factConfidence: ["confirmed", "inferred", "unknown"],
-    dataSensitivity: ["public", "internal", "confidential"],
-    platform: ["web", "api"],
-    triggerSource: ["manual", "schedule", "event", "ci"],
-    integrationKind: ["jira", "github", "gitlab", "ci"],
-    externalIssueStatus: ["open", "in_progress", "resolved", "closed"],
-} as const satisfies Record<string, readonly string[]>;
+export { ENUM_DICTIONARY, enumValues } from "../packages/domain/src/enums.js";
+export type { EnumKey, EnumValue } from "../packages/domain/src/enums.js";
 
-export type EnumKey = keyof typeof ENUM_DICTIONARY;
-export type EnumValue<K extends EnumKey> = (typeof ENUM_DICTIONARY)[K][number];
+import { ENUM_DICTIONARY } from "../packages/domain/src/enums.js";
 
 /** 表列 → 枚举 绑定清单：DB CHECK 约束只允许出现在此清单里，新增绑定须同步对应 migration。 */
 export interface EnumColumnBinding {
     readonly table: string;
     readonly column: string;
-    readonly enumKey: EnumKey;
+    readonly enumKey: keyof typeof ENUM_DICTIONARY;
 }
 
 export const ENUM_COLUMN_BINDINGS: readonly EnumColumnBinding[] = [
@@ -74,10 +41,6 @@ export const ENUM_COLUMN_BINDINGS: readonly EnumColumnBinding[] = [
     { table: "external_integrations", column: "kind", enumKey: "integrationKind" },
     { table: "external_issue_links", column: "status", enumKey: "externalIssueStatus" },
 ];
-
-export function enumValues(key: EnumKey): readonly string[] {
-    return ENUM_DICTIONARY[key];
-}
 
 /** 生成 CHECK 约束 SQL（值列表来自字典，杜绝手抄漂移）。 */
 export function enumCheckSql(binding: EnumColumnBinding): string {

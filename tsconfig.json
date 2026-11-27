@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/core" },
     { "path": "packages/domain" },
+    { "path": "packages/mcp" },
     { "path": "packages/contracts" },
     { "path": "packages/cli" },
     { "path": "apps/api" },

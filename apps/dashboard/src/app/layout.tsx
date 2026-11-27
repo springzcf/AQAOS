@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <header className="topbar">
                     <div className="logo">AQ</div>
                     <h1>AQAOS 控制台</h1>
-                    <span className="tag">skeleton · T-E11-02 pending</span>
+                    <span className="tag">skeleton · T-E01-10</span>
                 </header>
                 <main>{children}</main>
             </body>

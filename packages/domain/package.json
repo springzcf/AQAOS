@@ -1,6 +1,6 @@
 {
   "name": "@aqaos/domain",
-  "version": "0.1.0",
+  "version": "0.10.0",
   "type": "module",
   "description": "AQAOS domain layer — entities, value objects, state machines, and invariants (DDD §7).",
   "main": "./dist/index.js",
@@ -13,5 +13,9 @@
   },
   "scripts": {
     "build": "tsc -b"
+  },
+  "dependencies": {
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.25.2"
   }
 }

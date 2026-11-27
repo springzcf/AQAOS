@@ -2,7 +2,7 @@
   "name": "@aqaos/api",
   "version": "0.1.0",
   "type": "module",
-  "description": "AQAOS API service — control-plane REST + SSE (NestJS rewrite lands with T-E02-09).",
+  "description": "AQAOS control-plane REST + SSE service（Fastify，T-E01-08 重建；原 express 单文件过渡服务退役）",
   "scripts": {
     "dev": "tsx src/server.ts",
     "start": "tsx src/server.ts",
@@ -10,9 +10,13 @@
   },
   "dependencies": {
     "@aqaos/core": "*",
-    "express": "^4.21.2"
-  },
-  "devDependencies": {
-    "@types/express": "^5.0.0"
+    "@aqaos/domain": "*",
+    "@aqaos/mcp": "*",
+    "@fastify/swagger": "^9.4.0",
+    "@fastify/swagger-ui": "^5.2.0",
+    "fastify": "^5.2.1",
+    "fastify-plugin": "^6.0.1",
+    "jose": "^6.2.18",
+    "pg": "^8.13.1"
   }
 }

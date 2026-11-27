@@ -1,6 +1,6 @@
 {
   "name": "@aqaos/worker-agent",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "AQAOS agent worker — hosts Claude Agent SDK sessions (会话型/混合型 agents), MCP tool dispatch, and approval hooks.",
   "main": "./dist/index.js",
@@ -9,5 +9,10 @@
     "build": "tsc -b",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@aqaos/domain": "*",
+    "@aqaos/mcp": "*",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.332"
   }
 }
